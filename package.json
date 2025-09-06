@@ -5,10 +5,10 @@
   "type": "module",
   "homepage": "https://exrezzo.github.io/mutranier",
   "scripts": {
-    "copy:static": "mkdir -p dist/assets && cp public/index.html dist/index.html && (cp -R public/assets dist/ 2>/dev/null || true)",
+    "copy:static": "mkdir -p dist/assets && cp public/index.html dist/index.html && (cp public/favicon.svg dist/favicon.svg 2>/dev/null || true) && (cp -R public/assets dist/ 2>/dev/null || true)",
     "watch:static": "chokidar 'public/**/*' -c 'npm run copy:static'",
     "dev": "npm run copy:static && concurrently \"npm:watch:static\" \"esbuild src/main.ts --bundle --outfile=dist/assets/bundle.js --servedir=dist --watch\"",
-    "build": "rm -rf dist && mkdir -p dist/assets && esbuild src/main.ts --bundle --minify --sourcemap --outfile=dist/assets/bundle.js && cp public/index.html dist/index.html && (cp -R public/assets dist/ 2>/dev/null || true) && touch dist/.nojekyll",
+    "build": "rm -rf dist && mkdir -p dist/assets && esbuild src/main.ts --bundle --minify --sourcemap --outfile=dist/assets/bundle.js && cp public/index.html dist/index.html && (cp public/favicon.svg dist/favicon.svg 2>/dev/null || true) && (cp -R public/assets dist/ 2>/dev/null || true) && touch dist/.nojekyll",
     "preview": "npx serve dist"
   },
   "devDependencies": {
