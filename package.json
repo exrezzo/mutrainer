@@ -6,7 +6,7 @@
   "homepage": "https://exrezzo.github.io/mutranier",
   "scripts": {
     "dev": "esbuild src/main.ts --bundle --outfile=dist/assets/bundle.js --servedir=dist --watch",
-    "build": "rm -rf dist && esbuild src/main.ts --bundle --minify --sourcemap --outdir=dist/assets && cp public/index.html dist/index.html && (cp -R public/assets dist/ 2>/dev/null || true) && touch dist/.nojekyll",
+    "build": "rm -rf dist && mkdir -p dist/assets && esbuild src/main.ts --bundle --minify --sourcemap --outfile=dist/assets/bundle.js && cp public/index.html dist/index.html && (cp -R public/assets dist/ 2>/dev/null || true) && touch dist/.nojekyll",
     "preview": "npx serve dist"
   },
   "devDependencies": {
