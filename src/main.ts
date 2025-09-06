@@ -157,6 +157,18 @@ app.addEventListener('click', (e) => {
   }
 });
 
+// Simple mobile detection to avoid auto-focusing input (prevents virtual keyboard pop-up)
+function isMobile(): boolean {
+  if (typeof navigator !== 'undefined') {
+    const ua = navigator.userAgent || navigator.vendor || (window as any).opera || '';
+    if (/Mobi|Android|iPhone|iPad|iPod|Mobile|Tablet|Touch/.test(ua)) return true;
+  }
+  if (typeof window !== 'undefined' && 'matchMedia' in window) {
+    try { if (window.matchMedia('(pointer:coarse)').matches) return true; } catch {}
+  }
+  return false;
+}
+
 function render() {
   if (!app) return;
   if (finished) {
@@ -206,8 +218,11 @@ function render() {
     const nb = document.getElementById('next') as HTMLButtonElement | null;
     nb?.focus();
   } else {
-    answerInput?.focus();
-    answerInput?.select();
+    const mobile = isMobile();
+    if (answerInput && !mobile) {
+      answerInput.focus();
+      answerInput.select();
+    }
   }
 }
 
