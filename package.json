@@ -5,13 +5,17 @@
   "type": "module",
   "homepage": "https://exrezzo.github.io/mutranier",
   "scripts": {
-    "dev": "esbuild src/main.ts --bundle --outfile=dist/assets/bundle.js --servedir=dist --watch",
+    "copy:static": "mkdir -p dist/assets && cp public/index.html dist/index.html && (cp -R public/assets dist/ 2>/dev/null || true)",
+    "watch:static": "chokidar 'public/**/*' -c 'npm run copy:static'",
+    "dev": "npm run copy:static && concurrently \"npm:watch:static\" \"esbuild src/main.ts --bundle --outfile=dist/assets/bundle.js --servedir=dist --watch\"",
     "build": "rm -rf dist && mkdir -p dist/assets && esbuild src/main.ts --bundle --minify --sourcemap --outfile=dist/assets/bundle.js && cp public/index.html dist/index.html && (cp -R public/assets dist/ 2>/dev/null || true) && touch dist/.nojekyll",
     "preview": "npx serve dist"
   },
   "devDependencies": {
+    "chokidar-cli": "^3.0.0",
+    "concurrently": "^8.2.2",
     "esbuild": "^0.21.5",
-    "typescript": "^5.5.4",
-    "serve": "^14.2.3"
+    "serve": "^14.2.3",
+    "typescript": "^5.5.4"
   }
 }
