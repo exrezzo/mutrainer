@@ -43,6 +43,33 @@ function feedbackBox(type: 'correct' | 'incorrect' | 'invalid', message: string)
   return `<div style="padding:.6rem .75rem; border-radius:6px; font-weight:600; ${styles[type]}">${message}</div>`;
 }
 
+// ---------- Note Color Mapping ----------
+const NOTE_COLOR_MAP: Record<string,{bg:string;fg:string}> = {
+  'C':  { bg:'#cfe8ff', fg:'#06385e' },       // light blue
+  'C#': { bg:'#e3f3ff', fg:'#06385e' },       // lighter blue
+  'D':  { bg:'#53c46a', fg:'#063516' },       // green
+  'D#': { bg:'#b7edbb', fg:'#184a1c' },       // light green
+  'E':  { bg:'#c49a6c', fg:'#3e2812' },       // brown
+  'F':  { bg:'#b5b5b5', fg:'#222' },         // grey
+  'F#': { bg:'#e0e0e0', fg:'#222' },         // light grey
+  'G':  { bg:'#ffb347', fg:'#5a3100' },       // orange
+  'G#': { bg:'#ffd8a6', fg:'#5a3100' },       // light orange
+  'A':  { bg:'#ef4444', fg:'#fff' },         // red
+  'A#': { bg:'#fca5a5', fg:'#5a0a0a' },       // light red
+  'B':  { bg:'#fde047', fg:'#563f00' },       // yellow
+};
+function noteBadge(note: string, opts: {pad?:boolean} = {}): string {
+  const n = note.toUpperCase();
+  const c = NOTE_COLOR_MAP[n];
+  if (!c) return note; // fallback plain
+  const style = `display:inline-block;${opts.pad!==false?'padding:2px 6px;':''}margin:0 2px;border-radius:999px;font-weight:600;font-size:.9em;background:${c.bg};color:${c.fg};line-height:1;vertical-align:baseline;`;
+  return `<span data-note-badge="${n}" style="${style}">${note}</span>`;
+}
+const NOTE_REGEX = /\b([A-G](?:#{1,2}|b{1,2})?)\b/g;
+function colorizeNotes(text: string): string {
+  return text.replace(NOTE_REGEX, (m) => noteBadge(m));
+}
+
 function buildReview(): string {
   return `
     <details><summary>Review answers</summary>
@@ -51,7 +78,9 @@ function buildReview(): string {
           const badgeStyle = q.correct
             ? 'color:#166534;background:#f0fdf4;border:1px solid #16a34a;'
             : 'color:#991b1b;background:#fef2f2;border:1px solid #dc2626;';
-          return `<li>${q.text}<br><span style="display:inline-block;margin-top:.15rem;font-weight:600;${badgeStyle}padding:.25rem .45rem;border-radius:4px;">${q.correct?'✅':'❌'} Your answer: ${q.userAnswer ?? '(none)'} ${q.correct?'':`→ Correct: ${q.answer}`}</span></li>`;
+          const ua = q.userAnswer ? noteBadge(q.userAnswer, { pad:false }) : '(none)';
+          const ca = noteBadge(q.answer, { pad:false });
+          return `<li>${colorizeNotes(q.text)}<br><span style="display:inline-block;margin-top:.15rem;font-weight:600;${badgeStyle}padding:.25rem .45rem;border-radius:4px;">${q.correct?'✅':'❌'} Your answer: ${ua} ${q.correct?'':`→ Correct: ${ca}`}</span></li>`;
         }).join('')}
       </ol>
     </details>`;
@@ -63,8 +92,8 @@ function submitAnswer(raw: string) {
   const q = questions[idx];
   const norm = normalizeNote(raw);
   if (!norm) {
-    feedbackHtml = feedbackBox('invalid', '⚠️ Invalid note. Use letters with optional # or flats (e.g. Bb). Accepted: C C#/Db D D#/Eb E F F#/Gb G G#/Ab A A#/Bb B');
-    awaitingNext = true; // still move to next? keep pattern: user must press Next
+    feedbackHtml = feedbackBox('invalid', '⚠️ Invalid note. Use letters with optional # or flats (e.g. Bb). Accepted: ' + ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'].map(n=>noteBadge(n)).join(' '));
+    awaitingNext = true;
     timer.endSegment();
     render();
     return;
@@ -73,12 +102,12 @@ function submitAnswer(raw: string) {
   q.correct = norm === q.answer;
   if (q.correct) {
     correctCount++;
-    feedbackHtml = feedbackBox('correct', `✅ Correct! Answer: ${q.answer}`);
+    feedbackHtml = feedbackBox('correct', `✅ Correct! Answer: ${noteBadge(q.answer)}`);
   } else {
-    feedbackHtml = feedbackBox('incorrect', `❌ Incorrect. Correct: ${q.answer}`);
+    feedbackHtml = feedbackBox('incorrect', `❌ Incorrect. Your answer: ${noteBadge(q.userAnswer)} → Correct: ${noteBadge(q.answer)}`);
   }
   awaitingNext = true;
-  timer.endSegment(); // pause timing after answer
+  timer.endSegment();
   render();
 }
 
@@ -121,7 +150,7 @@ function render() {
   app.innerHTML = `
     <h1>Interval Quiz</h1>
     <p>Question ${idx+1} of ${questions.length} <span id="elapsed" style="margin-left:.75rem; font-size:.85em; color:#444;">0s</span></p>
-    <p style="font-weight:600;">${q.text}</p>
+    <p style="font-weight:600;">${colorizeNotes(q.text)}</p>
     <form id="answer-form" autocomplete="off" style="margin:0 0 0.75rem 0;">
       <label for="answer" style="display:block;margin-bottom:.25rem;">Answer (note):</label>
       <input id="answer" name="answer" type="text" inputmode="text" style="padding:.4rem .6rem; font-size:1rem; width:140px;" maxlength="3" />
@@ -129,7 +158,12 @@ function render() {
       ${awaitingNext ? '<button type="button" id="next" style="margin-left:.5rem;">Next ➡️</button>' : ''}
     </form>
     <div class="note-pad" style="margin:.5rem 0 0; display:flex; flex-wrap:wrap; gap:.4rem;">
-      ${NOTES.map(n => `<button type="button" class="note-btn" data-note="${n}" style="padding:.35rem .65rem; font-size:.85rem; border:1px solid #999; background:#ececec; color:#222; cursor:pointer; border-radius:4px; line-height:1.1;">${DISPLAY_NOTES.find(d=>d.value===n)?.label || n}</button>`).join('')}
+      ${NOTES.map(n => {
+        const c = NOTE_COLOR_MAP[n];
+        const bg = c?.bg || '#ececec';
+        const fg = c?.fg || '#222';
+        return `<button type="button" class="note-btn" data-note="${n}" style="padding:.4rem .7rem; font-size:.85rem; border:1px solid rgba(0,0,0,.25); background:${bg}; color:${fg}; cursor:pointer; border-radius:999px; line-height:1.1; font-weight:600;">${DISPLAY_NOTES.find(d=>d.value===n)?.label || n}</button>`;
+      }).join('')}
     </div>
     ${feedbackHtml ? `<div style="margin:.75rem 0 .25rem;">${feedbackHtml}</div>` : ''}
     <div class="small" style="margin-top:.9rem;">Score so far: ${correctCount} correct</div>
